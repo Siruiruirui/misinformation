@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import edu.gmu.mason.vanilla.log.*;
 import org.apache.commons.collections4.keyvalue.MultiKey;
 import org.apache.commons.collections4.map.MultiKeyMap;
 import org.apache.commons.math3.random.EmpiricalDistribution;
@@ -67,30 +68,6 @@ import edu.gmu.mason.vanilla.environment.Pub;
 import edu.gmu.mason.vanilla.environment.Restaurant;
 import edu.gmu.mason.vanilla.environment.SpatialNetwork;
 import edu.gmu.mason.vanilla.environment.Workplace;
-import edu.gmu.mason.vanilla.log.CdfFlatFormatterForRelation;
-import edu.gmu.mason.vanilla.log.CdfMapper;
-import edu.gmu.mason.vanilla.log.CdfMapperBuilder;
-import edu.gmu.mason.vanilla.log.CdfSchemaFormatter;
-import edu.gmu.mason.vanilla.log.CdfValueFormatter;
-import edu.gmu.mason.vanilla.log.Characteristics;
-import edu.gmu.mason.vanilla.log.DateTimeTypeAdapter;
-import edu.gmu.mason.vanilla.log.ExtLogger;
-import edu.gmu.mason.vanilla.log.GsonCsvSchemaFormatter;
-import edu.gmu.mason.vanilla.log.GsonCsvValueFormatter;
-import edu.gmu.mason.vanilla.log.GsonFormatter;
-import edu.gmu.mason.vanilla.log.IterativeLogSchedule;
-import edu.gmu.mason.vanilla.log.LocalDateTimeTypeAdapter;
-import edu.gmu.mason.vanilla.log.LocalDateTypeAdapter;
-import edu.gmu.mason.vanilla.log.LocalTimeTypeAdapter;
-import edu.gmu.mason.vanilla.log.LogSchedule;
-import edu.gmu.mason.vanilla.log.MasonGeometryTypeAdapter;
-import edu.gmu.mason.vanilla.log.OutputFormatter;
-import edu.gmu.mason.vanilla.log.ReferenceTypeAdapter;
-import edu.gmu.mason.vanilla.log.ReflectionValueExtractor;
-import edu.gmu.mason.vanilla.log.ReservedLogChannels;
-import edu.gmu.mason.vanilla.log.Skip;
-import edu.gmu.mason.vanilla.log.State;
-import edu.gmu.mason.vanilla.log.SupplierExtractor;
 import edu.gmu.mason.vanilla.utils.CollectionUtil;
 import edu.gmu.mason.vanilla.utils.ColorUtils;
 import edu.gmu.mason.vanilla.utils.Exclusion;
@@ -127,6 +104,9 @@ import sim.util.geo.MasonGeometry;
  */
 @SuppressWarnings({ "unused", "serial", "unchecked", "rawtypes" })
 public class WorldModel extends SimState {
+	// Misinformation
+	public int numOfMisAgents = 0;
+	private LogMisinformation logMisinformation;
 
 	// a public reference to simulation parameters
 	public WorldParameters params;
@@ -135,6 +115,10 @@ public class WorldModel extends SimState {
 
 	// java utils
 	private final static ExtLogger logger = ExtLogger.create(WorldModel.class);
+	public ExtLogger getLogger(){
+		return logger;
+	}
+
 	
 	// predefined ordering for MASON schedule
 	public static final int STEP_BEGIN_PRIORITY = Integer.MIN_VALUE + 10;
@@ -201,8 +185,6 @@ public class WorldModel extends SimState {
 	private Object[][] latestBarStatsData = { { 1, Color.BLACK, Color.BLACK,
 			Color.BLACK, 0.00, 0.0, 0 } };
 
-	// Misinformation
-	private int numOfMisAgents = 0;
 
 	public WorldModel(long seed, WorldParameters params) throws IOException,
 			Exception {
@@ -901,7 +883,14 @@ public class WorldModel extends SimState {
 		}
 		//spatialNetwork.clearPrecomputedPaths();
 		logger.info("Human agents are added.");
-		logger.info("Possessed misinformation agents in total " + numOfMisAgents+"/"+agentId);
+		logger.info("Possessed misinformation agents in total " + numOfMisAgents+"/"+params.numOfAgents);
+		try {
+			logMisinformation.record("Percent Initial " + numOfMisAgents+ "/"+params.numOfAgents +" "+numOfMisAgents/(double)params.numOfAgents);
+			logMisinformation.recordCurve("0," + numOfMisAgents +","+numOfMisAgents/(double)params.numOfAgents);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void addAgent(long agentId, int nId, boolean family, boolean kids,
@@ -966,6 +955,11 @@ public class WorldModel extends SimState {
 		logger.info("Agent #" + agentId + " added.");
 		if (possess){
 			logger.info("Agent #" + agentId + " possessed misinformation.");
+			try {
+				logMisinformation.record(""+agentId);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			numOfMisAgents +=1;
 			//logger.info("Possessed misinformation agents in total " + numOfMisAgents+"/"+agentId);
 		}
@@ -1079,7 +1073,21 @@ public class WorldModel extends SimState {
 		
 		// update day display on the screen
 		day = day + 1;
-		logger.info("Night routine:" + getFormattedDateTime());
+		String time = getFormattedDateTime();
+		logger.info("Night routine:" + time);
+
+		try {
+			logMisinformation.record(time);
+			logMisinformation.record("Percent Now " +  numOfMisAgents+ "/"+params.numOfAgents +" "+numOfMisAgents / (double) params.numOfAgents);
+			logMisinformation.recordCurve(time +","+ numOfMisAgents +","+numOfMisAgents/(double)params.numOfAgents);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+//		try {
+//			logMisinformation.record("" + numOfMisAgents / (double) params.numOfAgents);
+//		}catch (IOException e) {
+//			e.printStackTrace();
+//		}
 
 		// logger.info("NIGHTLY VISITOR PROFILE UPDATE " +
 		// getFormattedDateTime());
@@ -1620,7 +1628,7 @@ public class WorldModel extends SimState {
 
 	public void startDataCollectionForQoIs() {
 
-		quantitiesOfInterest = new QuantitiesOfInterest(getMinutePerStep());
+		quantitiesOfInterest = new QuantitiesOfInterest(this,getMinutePerStep());
 
 		// captures all Quantities of Interest
 		dataCollector.addWatcher("QoIs", new Collector() {
@@ -1704,6 +1712,7 @@ public class WorldModel extends SimState {
 					}
 				}
 
+
 				for (Restaurant restaurant : getAllRestaurants()) {
 					List<Meeting> meetings = restaurant.getAllMeetings();
 					for (Meeting meeting : meetings) {
@@ -1711,6 +1720,7 @@ public class WorldModel extends SimState {
 								schedule.getSteps());
 					}
 				}
+
 
 				loggingInterval = quantitiesOfInterest
 						.getLoggingInterval(QuantitiesOfInterest.NUM_OF_SOCIAL_INTERACTIONS);

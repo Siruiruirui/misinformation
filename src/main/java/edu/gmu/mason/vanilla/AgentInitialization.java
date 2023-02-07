@@ -26,19 +26,19 @@ public class AgentInitialization {
 
 	public double generateOnlineSpreadPos(){
 		double[] pos = {0.1,0.3,0.5};
-		double onlineSpreadPos = pos[(int)Math.random()*3];
+		double onlineSpreadPos = pos[(int)(Math.random()*3)];
 		return onlineSpreadPos;
 	}
 
 	public double generateOfflineSpreadPos(){
-		double[] pos = {0.1,0.3,0.5};
-		double onlineSpreadPos = pos[(int)Math.random()*3];
+		double[] pos = {0.1,0.2,0.5};
+		double onlineSpreadPos = pos[(int)(Math.random()*3)];
 		return onlineSpreadPos;
 	}
 
 	public boolean generatePossessMisinformation(){
 		Random rand = new Random();
-		return (rand.nextInt(100) < 5);
+		return (rand.nextInt(100) < 2);
 	}
 
 	public double generateInitialBalance(EducationLevel level) {

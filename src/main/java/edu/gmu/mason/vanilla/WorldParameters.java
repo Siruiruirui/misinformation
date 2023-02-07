@@ -46,7 +46,7 @@ public class WorldParameters extends AnnotatedPropertied {
 	public static final int NUM_WORKPLACES_PER_1000 = 250;
 	public static final int NUM_PUBS_PER_1000 = 10;
 	public static final int NUM_RESTAURANTS_PER_1000 = 20;
-	public static final int NUM_OF_AGENTS = 250;
+	public static final int NUM_OF_AGENTS = 100;
 	public static final int NUM_OF_AGENT_INTERESTS = 10;
 	public static final double BASE_RENT_RATE = 500;
 	public static final String DEFAULT_MAPS = "campus_data";
@@ -145,9 +145,7 @@ public class WorldParameters extends AnnotatedPropertied {
 	// mis-information parameters
 	public int MAX_SPREAD= 4;
 	public int INITIAL_SPREAD= 50;
-	public double onlineSpreadProbability;
-	public double offlineSpreadProbability;
-	// public boolean possessMisinformation = false;
+
 	public int maxSpread;
 	public int initialMisSpread;
 

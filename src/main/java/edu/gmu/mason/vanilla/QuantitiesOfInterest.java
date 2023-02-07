@@ -1,10 +1,9 @@
 package edu.gmu.mason.vanilla;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import edu.gmu.mason.vanilla.log.LogMisinformation;
+
+import java.io.IOException;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
@@ -15,6 +14,9 @@ import java.util.Map.Entry;
  * 
  */
 public class QuantitiesOfInterest extends AnnotatedPropertied {
+	// a reference to the model
+	private WorldModel model;
+	private LogMisinformation logMisinformation;
 
 	private static final long serialVersionUID = -5856201401528559677L;
 	private static final int MEMORY_LENGTH_IN_STEPS = 2; 
@@ -46,7 +48,8 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 	private long pubVisitCount;
 	private List<AgentInteraction> agentInteractions;
 
-	public QuantitiesOfInterest(int minutePerStep) {
+	public QuantitiesOfInterest(WorldModel model, int minutePerStep) {
+		this.model = model;
 
 		long onceADay = (long) (60.0 / minutePerStep * 24.0);
 		pubVisitCount = 0;
@@ -106,7 +109,7 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 	public void captureInteractions(Meeting meeting, long step) {
 
 		Long[] participants = meeting.getParticipants().toArray(new Long[0]);
-		System.out.println("absdjkahsdkajshdkajshdkas"+participants.length);
+		//System.out.println("absdjkahsdkajshdkajshdkas"+participants.length);
 
 		// capture every single possible combinations
 		for (int i = 0; i < participants.length - 1; i++) {
@@ -126,10 +129,12 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 								&& p.getInteractionEndStep() == step - 1)
 						.findFirst().orElse(null);
 
-				if (interaction == null) { // means there was no such interaction
+				if (interaction == null) { // means there was no such interaction'
 					// we create a new one
 					interaction = new AgentInteraction(agent1, agent2, step);
-					interaction.spreadMisinformation();
+					// spreadMisinformation
+					spreadMisinformation(agent1,agent2);
+
 					agentInteractions.add(interaction);
 				}
 
@@ -138,6 +143,47 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 		}
 		// System.out.println(agentInteractions.get(1));
 
+	}
+
+	public void spreadMisinformation(long agent1, long agent2){
+		boolean agent1Mis = model.getAgent(agent1).getPossessMisinformation();
+		boolean agent2Mis = model.getAgent(agent2).getPossessMisinformation();
+
+		if (agent1Mis && !agent2Mis ){
+			// agent1 spread to agent2
+			double agent1Pos = model.getAgent(agent1).getOfflineSpreadProbability();
+			//System.out.println("aaaaaaaaaaaaa"+agent1Pos);
+			Random rand = new Random();
+			if (rand.nextInt(100) < agent1Pos*100){
+				model.getAgent(agent2).setPossessMisinformation(true);
+				model.numOfMisAgents++;
+				System.out.println("Agent #" + agent1 + " spread to #"+ agent2);
+				try {
+					logMisinformation.record(agent1 + " > "+ agent2);
+					logMisinformation.recordGraph( agent1 + " , "+ agent2);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+		} else if (!agent1Mis && agent2Mis){
+			// agent2 spread to agent1
+			double agent2Pos = model.getAgent(agent2).getOfflineSpreadProbability();
+			//System.out.println("aaaaaaaaaaaaa"+agent2Pos);
+			Random rand = new Random();
+			if (rand.nextInt(100) < agent2Pos*100){
+				model.getAgent(agent1).setPossessMisinformation(true);
+				model.numOfMisAgents++;
+				System.out.println("Agent #" + agent2 + " spread to #"+ agent1);
+				try {
+					logMisinformation.record(agent2 + " > "+ agent1);
+					logMisinformation.recordGraph( agent2 + " , "+ agent1);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
 	}
 
 	public List<AgentInteraction> getAgentInteractions() {

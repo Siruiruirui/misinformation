@@ -16,9 +16,6 @@ public class AgentInteraction implements java.io.Serializable {
 	private long interactionStartStep;
 	private long interactionEndStep;
 
-	// a reference to the model
-	@Skip
-	private WorldModel model;
 
 	public AgentInteraction(long agent1, long agent2, long startingStep) {
 		this.agent1 = agent1;
@@ -28,9 +25,9 @@ public class AgentInteraction implements java.io.Serializable {
 	}
 
 	// spread misinformation between agent1 and agent2
-	public void spreadMisinformation(){
-		model.getAgent(agent1);
-	}
+//	public void spreadMisinformation(){
+//		model.getAgent(agent1);
+//	}
 
 
 	public long getInteractionStartStep() {

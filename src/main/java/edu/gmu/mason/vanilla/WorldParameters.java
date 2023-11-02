@@ -46,7 +46,7 @@ public class WorldParameters extends AnnotatedPropertied {
 	public static final int NUM_WORKPLACES_PER_1000 = 250;
 	public static final int NUM_PUBS_PER_1000 = 10;
 	public static final int NUM_RESTAURANTS_PER_1000 = 20;
-	public static final int NUM_OF_AGENTS = 100;
+	public static final int NUM_OF_AGENTS = 15000;
 	public static final int NUM_OF_AGENT_INTERESTS = 10;
 	public static final double BASE_RENT_RATE = 500;
 	public static final String DEFAULT_MAPS = "campus_data";
@@ -150,6 +150,7 @@ public class WorldParameters extends AnnotatedPropertied {
 	public int initialMisSpread;
 
 	public int NUMBER_OF_MIS_AGENT = 0;
+	public int NUMBER_OF_INI_MIS_AGENT = 5;
 
 	// variables
 	public long seed;
@@ -163,6 +164,7 @@ public class WorldParameters extends AnnotatedPropertied {
 
 	// general model parameters
 	public int numOfMisAgent;
+	public int numOfIniMisAgent;
 	@EditableProperty(group = "Init", description = "Number of agents", lower = "100", upper = "10000", readOnly = false)
 	public int numOfAgents;
 	@EditableProperty(group = "Init", description = "Number of agent interests", lower = "5", upper = "10", readOnly = false)
@@ -482,5 +484,6 @@ public class WorldParameters extends AnnotatedPropertied {
 		maxSpread = MAX_SPREAD;
 		initialMisSpread = INITIAL_SPREAD;
 		numOfMisAgent = NUMBER_OF_MIS_AGENT;
+		numOfIniMisAgent = NUMBER_OF_INI_MIS_AGENT;
 	}
 }

@@ -1,4 +1,6 @@
 package edu.gmu.mason.vanilla;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import java.awt.Color;
 import java.io.File;
@@ -11,17 +13,8 @@ import java.io.Serializable;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -93,6 +86,7 @@ import sim.util.geo.GeomPlanarGraphDirectedEdge;
 import sim.util.geo.GeomPlanarGraphEdge;
 import sim.util.geo.MasonGeometry;
 
+
 /**
  * General description_________________________________________________________
  * This is the model class that contains high level methods such as agent
@@ -158,7 +152,17 @@ public class WorldModel extends SimState {
 
 	// social networks
 	private Network friendFamilyNetwork = new Network(true);
+	private Network observedFriendFamilyNetwork = new Network(true);
 	private Network workNetwork = new Network(true);
+	private HashSet<Object> observedNetworkAgents = new HashSet<>();
+
+	// co-location networks
+	private Network coLocationNetwork = new Network(true);
+	private Network observedCoLocationNetwork = new Network(true);
+	private HashSet<Object> coObservedNetworkAgents = new HashSet<>();
+
+	// spatial networks
+	private Network agentSpatialNetwork = new Network(true);
 
 	// data collection variable used to capture quantities of interests
 	private QuantitiesOfInterest quantitiesOfInterest;
@@ -177,7 +181,7 @@ public class WorldModel extends SimState {
 	private transient FileSink workGraphSink;
 	// Paths for the sink files
 	private String friendFamilyGraphSinkPath = "FriendFamilyGraph.dgs";
-	private String workGraphSinkPath = "WorkGraph.dgs";
+	private String workGraphSinkPath = "social_network_edges.dgs";
 	// Manipulation scheduler
 	private MasterScheduler<Manipulation> manipulationScheduler = null;
 	private MasterScheduler<LogSchedule> logScheduler = null;
@@ -216,6 +220,42 @@ public class WorldModel extends SimState {
 		agentLayer.clear(); // clear any existing agents from previous runs
 		addSchedulingAgents();
 		addHumanAgents();
+
+		// select and set the initial misinformation status
+//		ArrayList<Integer> generatedNumbers = new ArrayList<>();
+//		Random random = new Random();
+//		System.out.println(params.numOfIniMisAgent+" "+ params.numOfAgents);
+//		while (generatedNumbers.size() < params.numOfIniMisAgent) {
+//			int randomNumber = random.nextInt(params.numOfAgents);
+//			if (!generatedNumbers.contains(randomNumber)) {
+//				generatedNumbers.add(randomNumber);
+//			}
+//		}
+//		logger.info("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation");
+//
+//		StringBuilder generatedNumbersString = new StringBuilder();
+//
+//		for (Integer num : generatedNumbers) {
+//			generatedNumbersString.append(num).append(" ");
+//		}
+//		try {
+//			logMisinformation.recordSpread("New Spread! Agents initially processes misinformation: "+ generatedNumbersString.toString());
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+
+		for (long agent_id = 0; agent_id < params.numOfAgents; agent_id++) {
+			if (getAgent(agent_id) != null) {
+				Person agent = getAgent(agent_id);
+				boolean possess = false;
+//				if (generatedNumbers.contains((int)agent_id)) {
+//					possess = true;
+//					logger.info("Agent "+ agent_id + " processes misinformation");
+//				}
+				agent.setPossessMisinformation(possess);
+			}
+		}
+
 		addSupplyChainAgents();
 		agentLayer.setMBR(spatialNetwork.getWalkwayLayer().getMBR());
 
@@ -853,8 +893,9 @@ public class WorldModel extends SimState {
 		
 		// add approx equal number of agents for each neighborhood.
 		Map<Integer,Integer> numOfAgentsPerNeighborhood = numberOfAgentsPerNeighborhood(this.neighborhoodBuildingMap, params.numOfAgents);
+		//Map<Integer,Integer> numOfAgentsPerNeighborhood = numberOfAgentsPerNeighborhood(this.neighborhoodBuildingMap, 1000);
 		int nIndex = 0;
-		logger.info("Total number of agents: "+params.numOfAgents);
+		logger.info("Total number of agents: "+ params.numOfAgents);
 		
 
 		for (int nId : this.neighborhoodBuildingMap.keySet()) {
@@ -910,17 +951,14 @@ public class WorldModel extends SimState {
 		// mis-information
 		double misinformationOnline = initialization.generateOnlineSpreadPos();
 		double misinformationOffline = initialization.generateOfflineSpreadPos();
-		boolean possess = initialization.generatePossessMisinformation();
 		agent.setOnlineSpreadProbability(misinformationOnline);
 		agent.setOfflineSpreadProbability(misinformationOffline);
-		agent.setPossessMisinformation(possess);
-
-
 
 		agent.setNeighborhoodId(nId);
 
 		agent.setAge(initialization.generateAgentAge());
 		agent.setEducationLevel(education);
+		agent.setInterest(initialization.getAgentInterest());
 		agent.setInterest(initialization.getAgentInterest());
 		agent.getFoodNeed()
 				.setAppetite(initialization.generateAppetiteNumber());
@@ -953,16 +991,16 @@ public class WorldModel extends SimState {
 		Stoppable stp = schedule.scheduleRepeating(agent);
 		agent.setStoppable(stp);
 		logger.info("Agent #" + agentId + " added.");
-		if (possess){
-			logger.info("Agent #" + agentId + " possessed misinformation.");
-			try {
-				logMisinformation.record(""+agentId);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			numOfMisAgents +=1;
-			//logger.info("Possessed misinformation agents in total " + numOfMisAgents+"/"+agentId);
-		}
+//		if (possess){
+//			logger.info("Agent #" + agentId + " possessed misinformation.");
+//			try {
+//				logMisinformation.record(""+agentId);
+//			} catch (IOException e) {
+//				e.printStackTrace();
+//			}
+//			numOfMisAgents +=1;
+//			//logger.info("Possessed misinformation agents in total " + numOfMisAgents+"/"+agentId);
+//		}
 		//logger.info("Possessed misinformation agents in total " + numOfMisAgents+"/"+agentId);
 	}
 	
@@ -1070,11 +1108,102 @@ public class WorldModel extends SimState {
 	}
 
 	public void nightlyRoutine() {
-		
-		// update day display on the screen
-		day = day + 1;
+
 		String time = getFormattedDateTime();
 		logger.info("Night routine:" + time);
+		// record complete social network, observed social network,complete co-location network, observed co-location network
+		try {
+			logMisinformation.recordSpread(time);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+
+
+		
+		// update day display on the screen
+		int spreadPeriod = 4;
+
+		if (day % spreadPeriod == 0) {
+			// select and set the initial misinformation status
+			ArrayList<Integer> generatedNumbers = new ArrayList<>();
+			Random random = new Random();
+			System.out.println(params.numOfIniMisAgent+" "+ params.numOfAgents);
+			while (generatedNumbers.size() < params.numOfIniMisAgent) {
+				int randomNumber = random.nextInt(params.numOfAgents);
+				if (!generatedNumbers.contains(randomNumber)) {
+					generatedNumbers.add(randomNumber);
+				}
+			}
+			logger.info("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation");
+
+			StringBuilder generatedNumbersString = new StringBuilder();
+
+			for (Integer num : generatedNumbers) {
+				generatedNumbersString.append(num).append(" ");
+			}
+			try {
+				logMisinformation.recordSpread("New Spread! Agents initially processes misinformation: "+ generatedNumbersString.toString());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			for (long agent_id = 0; agent_id < params.numOfAgents; agent_id++) {
+				if (getAgent(agent_id) != null) {
+					Person agent = getAgent(agent_id);
+					boolean possess = false;
+					if (generatedNumbers.contains((int)agent_id)) {
+						possess = true;
+						logger.info("Agent "+ agent_id + " processes misinformation");
+					}
+					agent.setPossessMisinformation(possess);
+				}
+			}
+		}
+
+
+
+		day = day + 1;
+
+
+
+
+
+
+		if (day == 2) {
+			try {
+				// FileWriter writer = new FileWriter("/Users/tt/Documents/pol-master/logs/misinformation/features.txt", false); // "true" to append to the file
+				String currentDirectory = System.getProperty("user.dir");
+				FileWriter writer = new FileWriter(currentDirectory+"/logs/misinformation/features.txt", false);
+				double joviality;
+				double age;
+				double balance;
+				double monthly_income;
+				int el;
+				int family_size;
+				String interest;
+				int home;
+				writer.write("agent_id agent_interest location_of_home age available_balance monthly_income education_level family_size\n");
+				for (long agent_id = 0; agent_id < params.numOfAgents; agent_id++) {
+					if (getAgent(agent_id) != null) {
+						Person agent = getAgent(agent_id);
+						joviality = agent.getJoviality();
+						el = agent.getEducationLevel().getValue();
+						age = agent.getAge();
+						monthly_income = agent.getProjectedMonthlyIncome();
+						interest = agent.getInterest().name();
+						family_size = agent.getFamilyNumber();
+						balance = agent.getBalance();
+						home = agent.getNeighborhoodId();
+						writer.write(Long.toString(agent_id) + " " + interest + " " + Integer.toString(home)+ " "+ Double.toString(Math.round(balance))+ " " + Double.toString(Math.round(monthly_income))+ " " + Integer.toString(el)+ " " + Integer.toString(family_size) + "\n");
+					}
+
+				}
+
+				writer.close(); // Close the file when done
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 
 		try {
 			logMisinformation.record(time);
@@ -1083,11 +1212,7 @@ public class WorldModel extends SimState {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-//		try {
-//			logMisinformation.record("" + numOfMisAgents / (double) params.numOfAgents);
-//		}catch (IOException e) {
-//			e.printStackTrace();
-//		}
+
 
 		// logger.info("NIGHTLY VISITOR PROFILE UPDATE " +
 		// getFormattedDateTime());
@@ -1171,6 +1296,267 @@ public class WorldModel extends SimState {
 				ex.printStackTrace();
 			}
 		}
+
+
+		// update the observed social network based on complete social network
+		Edge[][] completeEdges = friendFamilyNetwork.getAdjacencyMatrix();
+		HashSet<Object> completeNetworkAgents = new HashSet<>();
+
+		if (day % 3 == 0) {
+			if (completeEdges != null) {
+				// get all agents that has edge in the complete social network
+				for (int i = 0; i < completeEdges.length; i++) {
+					for (int j = 0; j < completeEdges[i].length; j++) {
+						Edge edge = completeEdges[i][j];
+						if (edge != null) {
+							completeNetworkAgents.add(edge.getFrom());
+						}
+					}
+				}
+
+				// add agents from complete social network to observed social network based on chance and joviality
+				for (Object element : completeNetworkAgents) {
+					Long agent = Long.parseLong(String.valueOf(element));
+					Random rand = new Random();
+					if (getAgent(agent) != null) {
+						double weightedPossibility = rand.nextInt(10) / 10.0 + getAgent(agent).getJoviality();
+						// System.out.println(weightedPossibility);
+						// System.out.println("okkkkkkkkkk");
+						if (weightedPossibility > 1.3) {
+							observedNetworkAgents.add(element);
+						}
+					}
+				}
+
+				// add the edges of the agents to the observed social network
+				for (int i = 0; i < completeEdges.length; i++) {
+					for (int j = 0; j < completeEdges[i].length; j++) {
+						Edge edge = completeEdges[i][j];
+						if (edge != null
+								&& observedNetworkAgents.contains(edge.getFrom())
+								&& observedNetworkAgents.contains(edge.getTo())) {
+							if (observedFriendFamilyNetwork.getEdge(edge.getFrom(), edge.getTo()) != null) {
+								observedFriendFamilyNetwork.addEdge(edge.getFrom(), edge.getTo(), 1.0);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// update the observed co-location network based on complete co-location network
+		Edge[][] coLocationEdges = coLocationNetwork.getAdjacencyMatrix();
+		HashSet<Object> completeCoNetworkAgents = new HashSet<>();
+
+		if (coLocationEdges != null) {
+			// get all agents that has edge in the complete social network
+			for (int i = 0; i < coLocationEdges.length; i++) {
+				for (int j = 0; j < coLocationEdges[i].length; j++) {
+					Edge edge = coLocationEdges[i][j];
+					if (edge != null) {
+						completeCoNetworkAgents.add(edge.getFrom());
+					}
+				}
+			}
+
+			// add agents from complete co-location network to observed co-location network
+			for (Object element : completeCoNetworkAgents) {
+				Long agent = Long.parseLong(String.valueOf(element));
+				Random rand = new Random();
+				if (getAgent(agent) != null) {
+					int possibility = rand.nextInt(100);
+					if (possibility > 95) {
+						coObservedNetworkAgents.add(element);
+					}
+				}
+			}
+
+			// add the edges of the agents to the observed co-location network
+			for (int i = 0; i < coLocationEdges.length; i++) {
+				for (int j = 0; j < coLocationEdges[i].length; j++) {
+					Edge edge = coLocationEdges[i][j];
+					if (edge != null
+							&& coObservedNetworkAgents.contains(edge.getFrom())
+							&& coObservedNetworkAgents.contains(edge.getTo())) {
+						observedCoLocationNetwork.addEdge(edge.getFrom(), edge.getTo(), 1.0);
+					}
+				}
+			}
+		}
+
+
+
+		// spread in observed social network
+		double decrease;
+
+//		if (day < 6){
+//			decrease = -0.1;
+//		} else if (day < 10){
+//			decrease = 0;
+//		} else if (day < 13){
+//			decrease = 0.1;
+//		} else if (day < 15){
+//			decrease = 0.15;
+//		} else {
+//			decrease = 0.2;
+//		}
+
+		int normalizedDay = day % spreadPeriod;
+		if (normalizedDay< 6){
+			decrease = -0.35;
+		} else if (normalizedDay < 10){
+			decrease = -0.1;
+		} else if (normalizedDay < 13){
+			decrease = 0;
+		} else {
+			decrease = 0.1;
+		}
+
+		Edge[][] observedEdges = observedFriendFamilyNetwork.getAdjacencyMatrix();
+		for (int i = 0; i < observedEdges.length; i++) {
+			for (int j = 0; j < observedEdges[i].length; j++) {
+				Edge edge = observedEdges[i][j];
+				if (edge != null) {
+					Long agent1 = Long.parseLong(String.valueOf(edge.getFrom()));
+					Long agent2 = Long.parseLong(String.valueOf(edge.getTo()));
+
+					boolean agent1Mis = false;
+					boolean agent2Mis = true;
+
+					if (getAgent(agent1) != null) {
+						agent1Mis = getAgent(agent1).getPossessMisinformation();
+					}
+					if (getAgent(agent2) != null) {
+						agent2Mis = getAgent(agent2).getPossessMisinformation();
+					}
+
+					if (agent1Mis && !agent2Mis){
+						// agent1 spread to agent2
+						Random rand = new Random();
+						double weightedPossibility = rand.nextInt(10)/10.0 + getAgent(agent1).getOnlineSpreadProbability()-decrease;
+						if (weightedPossibility > 1){
+							getAgent(agent2).setPossessMisinformation(true);
+							numOfMisAgents++;
+							try {
+								logMisinformation.recordSpread( agent1 + " "+ agent2+ " 2");
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						}
+
+					}
+				}
+			}
+		}
+
+		if (day % spreadPeriod == 0) {
+			try {
+				logMisinformation.recordSocialNetwork(time);
+				logMisinformation.recordObservedSocialNetwork(time);
+				logMisinformation.recordSpread(time);
+				logMisinformation.recordCoLocationNetwork(time);
+				logMisinformation.recordObservedCoLocationNetwork(time);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			for (int i = 0; i < completeEdges.length; i++) {
+				for (int j = 0; j < completeEdges[i].length; j++) {
+					Edge edge = completeEdges[i][j];
+					if (edge != null) {
+						String agent1 = String.valueOf(edge.getFrom());
+						String agent2 = String.valueOf(edge.getTo());
+
+//						Object info = edge.getInfo();
+//						double currentWeight = 0.0;
+//						if (info instanceof Double) {
+//							currentWeight = (double) info;
+//						}
+
+						try {
+							logMisinformation.recordSocialNetwork(agent1 + " " + agent2);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+//						edge.setInfo(currentWeight+1.0);
+
+					}
+				}
+			}
+
+			for (int i = 0; i < observedEdges.length; i++) {
+				for (int j = 0; j < observedEdges[i].length; j++) {
+					Edge edge = observedEdges[i][j];
+					if (edge != null) {
+						String agent1 = String.valueOf(edge.getFrom());
+						String agent2 = String.valueOf(edge.getTo());
+
+						Object info = edge.getInfo();
+//						double currentWeight = 0;
+//						if (info instanceof Double) {
+//							currentWeight = (double) info;
+//						}
+
+						double currentWeight = (double) info;
+
+						try {
+							logMisinformation.recordObservedSocialNetwork(agent1 + " " + agent2 + " " + currentWeight);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+						edge.setInfo(currentWeight+1.0);
+					}
+				}
+			}
+
+			for (int i = 0; i < coLocationEdges.length; i++) {
+				for (int j = 0; j < coLocationEdges[i].length; j++) {
+					Edge edge = coLocationEdges[i][j];
+					if (edge != null && ((Double) edge.getInfo()).floatValue() > 0.6) {
+						System.out.print(edge.getInfo() + " ");
+						String agent1 = String.valueOf(edge.getFrom());
+						String agent2 = String.valueOf(edge.getTo());
+						try {
+							logMisinformation.recordCoLocationNetwork(agent1 + " " + agent2);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+
+			Edge[][] observedCoLocationEdges = observedCoLocationNetwork.getAdjacencyMatrix();
+			for (int i = 0; i < observedCoLocationEdges.length; i++) {
+				for (int j = 0; j < observedCoLocationEdges[i].length; j++) {
+					Edge edge = observedCoLocationEdges[i][j];
+					if (edge != null) {
+						System.out.print(edge.getInfo() + " ");
+						String agent1 = String.valueOf(edge.getFrom());
+						String agent2 = String.valueOf(edge.getTo());
+						try {
+							logMisinformation.recordObservedCoLocationNetwork(agent1 + " " + agent2);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		}
+
+//
+//		for (int i = 0; i < matrix.length; i++) {
+//			for (int j = 0; j < matrix[i].length; j++) {
+//				double newWeight = (double) matrix[i][j].getInfo() * params.networkEdgeDecayFactor;
+//				friendFamilyNetwork.updateEdge(matrix[i][j], matrix[i][j].from(), matrix[i][j].to(), newWeight);
+//
+//				if (newWeight < params.networkEdgeDeletionThreshold) {
+//					linksToDelete.add(matrix[i][j]);
+//				}
+//			}
+//		}
+
 		//clear the memory
 		matrix = null;
 		linksToDelete.clear();
@@ -1205,6 +1591,8 @@ public class WorldModel extends SimState {
 			happiness -= params.networkEdgeDeletionThreshold;
 			person.getLoveNeed().setSocialHappiness(happiness);
 		}
+
+
 
 	}
 
@@ -1595,6 +1983,10 @@ public class WorldModel extends SimState {
 
 	public Graph getVisualWorkGraph() {
 		return visualWorkGraph;
+	}
+
+	public Network getCoLocationNetwork() {
+		return coLocationNetwork;
 	}
 
 	public SpatialNetwork getSpatialNetwork() {

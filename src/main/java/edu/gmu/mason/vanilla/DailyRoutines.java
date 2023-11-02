@@ -3,6 +3,8 @@ package edu.gmu.mason.vanilla;
 import sim.engine.SimState;
 import sim.engine.Steppable;
 
+import java.io.IOException;
+
 /**
  * General description_________________________________________________________
  * This class schedules evening and midnight routines that have to be executed

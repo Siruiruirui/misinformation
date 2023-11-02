@@ -513,6 +513,7 @@ public class LoveNeed implements Need, java.io.Serializable {
 			// create a new connection
 			familyFriendNetwork.addEdge(agent.getAgentId(), agentIdToConnect,
 					agent.getModel().params.initialNetworkEdgeWeight);
+
 			madeNewFriend();
 
 			String me = String.valueOf(agent.getAgentId());

@@ -437,6 +437,10 @@ public class FinancialSafetyNeed implements Need, java.io.Serializable {
 		return calculateProjectedIncomeFromGivenDate(firstDayOfMonth);
 	}
 
+	public double getProjectedMonthlyIncome(){
+		return this.projectedMonthlyIncome();
+	}
+
 	public double projectedMonthlyIncomeForRemainingDays() {
 		LocalDateTime now = agent.getSimulationTime();
 

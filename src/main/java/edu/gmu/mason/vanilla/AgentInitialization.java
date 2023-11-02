@@ -38,7 +38,7 @@ public class AgentInitialization {
 
 	public boolean generatePossessMisinformation(){
 		Random rand = new Random();
-		return (rand.nextInt(100) < 2);
+		return (rand.nextInt(100) < 3);
 	}
 
 	public double generateInitialBalance(EducationLevel level) {

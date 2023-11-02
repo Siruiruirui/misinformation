@@ -711,6 +711,10 @@ public class Person implements Steppable, java.io.Serializable {
 		return family;
 	}
 
+	public int getFamilyNumber() {
+		return family.getNumberOfPeople();
+	}
+
 	public LoveNeed getLoveNeed() {
 		return loveNeed;
 	}
@@ -771,6 +775,10 @@ public class Person implements Steppable, java.io.Serializable {
 	public Job getJob() {
 		return this.financialSafetyNeed.getJob();
 	}
+
+	public double getBalance(){return this.financialSafetyNeed.getAvailableBalance();}
+
+	public double getProjectedMonthlyIncome() {return this.financialSafetyNeed.getProjectedMonthlyIncome();}
 
 	public Workplace getWorkplace() {
 		return this.financialSafetyNeed.getJob().getWorkplace();

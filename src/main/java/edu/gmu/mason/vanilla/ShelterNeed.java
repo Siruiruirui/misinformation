@@ -159,7 +159,7 @@ public class ShelterNeed implements Need, java.io.Serializable {
 				agent.getSimulationTime()).getDays();
 		
 		if (daysHomeless > agent.getModel().params.maxDaysToBeHomeless) {
-			agent.exitTheWorld(LifeStatus.Abandoned); // let the agent										// be free.
+			agent.exitTheWorld(LifeStatus.Abandoned); // let the agent be free.
 		}
 	}
 

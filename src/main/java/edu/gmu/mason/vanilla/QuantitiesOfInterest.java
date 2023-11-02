@@ -5,6 +5,7 @@ import edu.gmu.mason.vanilla.log.LogMisinformation;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
+import sim.field.network.Edge;
 
 /**
  * General description_________________________________________________________
@@ -110,6 +111,7 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 
 		Long[] participants = meeting.getParticipants().toArray(new Long[0]);
 		//System.out.println("absdjkahsdkajshdkajshdkas"+participants.length);
+		System.out.println("step"+step);
 
 		// capture every single possible combinations
 		for (int i = 0; i < participants.length - 1; i++) {
@@ -129,14 +131,18 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 								&& p.getInteractionEndStep() == step - 1)
 						.findFirst().orElse(null);
 
+
 				if (interaction == null) { // means there was no such interaction'
 					// we create a new one
 					interaction = new AgentInteraction(agent1, agent2, step);
 					// spreadMisinformation
-					spreadMisinformation(agent1,agent2);
-
+					model.getCoLocationNetwork().addEdge(agent1,agent2,0.1);
 					agentInteractions.add(interaction);
+				} else{
+					// model.getCoLocationNetwork().updateEdge(model.getCoLocationNetwork().getEdge(agent1,agent2),agent1,agent2,0.2);
+					model.getCoLocationNetwork().getEdge(agent1,agent2).setWeight(model.getCoLocationNetwork().getEdge(agent1,agent2).getWeight()+0.1);
 				}
+				spreadMisinformation(agent1,agent2,(double) step);
 
 				interaction.setInteractionEndStep(step);
 			}
@@ -145,22 +151,46 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 
 	}
 
-	public void spreadMisinformation(long agent1, long agent2){
+
+
+	public void spreadMisinformation(long agent1, long agent2, double step){
 		boolean agent1Mis = model.getAgent(agent1).getPossessMisinformation();
 		boolean agent2Mis = model.getAgent(agent2).getPossessMisinformation();
+
+		double decrease = -0.1;
+//		if (step <1300){
+//			decrease = -0.1;
+//		} else if (step < 2600){
+//			decrease = 0.1;
+//		} else if (step < 3600){
+//			decrease = 0.1;
+//		} else if (step < 4600){
+//			decrease = 0.2;
+//		} else {
+//			decrease = 0.3;
+//		}
+
+//		if (step <1300){
+//			decrease = -0.2;
+//		} else if (step < 2600){
+//			decrease = -0.1;
+//		} else {
+//			decrease = 0.1;
+//		}
 
 		if (agent1Mis && !agent2Mis ){
 			// agent1 spread to agent2
 			double agent1Pos = model.getAgent(agent1).getOfflineSpreadProbability();
-			//System.out.println("aaaaaaaaaaaaa"+agent1Pos);
 			Random rand = new Random();
-			if (rand.nextInt(100) < agent1Pos*100){
+			double weightedPossibility = rand.nextInt(10)/10.0+agent1Pos-decrease;
+			System.out.print("pos"+weightedPossibility+" "+agent1Pos);
+			if (weightedPossibility > 1.1){
 				model.getAgent(agent2).setPossessMisinformation(true);
 				model.numOfMisAgents++;
 				System.out.println("Agent #" + agent1 + " spread to #"+ agent2);
 				try {
 					logMisinformation.record(agent1 + " > "+ agent2);
-					logMisinformation.recordGraph( agent1 + " , "+ agent2);
+					logMisinformation.recordSpread( agent1 + " "+ agent2 + " 1");
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -169,15 +199,49 @@ public class QuantitiesOfInterest extends AnnotatedPropertied {
 		} else if (!agent1Mis && agent2Mis){
 			// agent2 spread to agent1
 			double agent2Pos = model.getAgent(agent2).getOfflineSpreadProbability();
-			//System.out.println("aaaaaaaaaaaaa"+agent2Pos);
 			Random rand = new Random();
-			if (rand.nextInt(100) < agent2Pos*100){
+			double weightedPossibility = rand.nextInt(10)/10.0+agent2Pos-decrease;
+			if (weightedPossibility >1.1){
 				model.getAgent(agent1).setPossessMisinformation(true);
 				model.numOfMisAgents++;
 				System.out.println("Agent #" + agent2 + " spread to #"+ agent1);
 				try {
 					logMisinformation.record(agent2 + " > "+ agent1);
-					logMisinformation.recordGraph( agent2 + " , "+ agent1);
+					logMisinformation.recordSpread( agent2 + " "+ agent1+ " 1");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
+	}
+
+
+
+	public void spreadMisinformationOnline(long agent1, long agent2){
+		boolean agent1Mis = false;
+		boolean agent2Mis = true;
+
+		if (model.getAgent(agent1) != null) {
+			agent1Mis = model.getAgent(agent1).getPossessMisinformation();
+		}
+		if (model.getAgent(agent2) != null) {
+			agent2Mis = model.getAgent(agent2).getPossessMisinformation();
+		}
+
+		if (agent1Mis && !agent2Mis){
+			// agent1 spread to agent2
+			Random rand = new Random();
+			double weightedPossibility = rand.nextInt(10)/10 + model.getAgent(agent1).getOnlineSpreadProbability();
+			System.out.println(rand.nextInt(10)/10);
+			System.out.println(weightedPossibility);
+			if (weightedPossibility > 0.4){
+				model.getAgent(agent2).setPossessMisinformation(true);
+				model.numOfMisAgents++;
+				System.out.println("Agent #" + agent1 + " spread to #"+ agent2);
+				try {
+					logMisinformation.recordSpread( agent1 + " "+ agent2+ " 2");
+					logMisinformation.record(agent1 + " > "+ agent2);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

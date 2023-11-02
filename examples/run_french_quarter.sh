@@ -1,1 +1,1 @@
-java -Dlog4j2.configurationFactory=edu.gmu.mason.vanilla.log.CustomConfigurationFactory -Dlog.rootDirectory=logs -Dsimulation.test=all -jar ../target/vanilla-0.1-jar-with-dependencies.jar -configuration french_quarter.properties -until 8640
+java -Dlog4j2.configurationFactory=edu.gmu.mason.vanilla.log.CustomConfigurationFactory -Dlog.rootDirectory=logs -Dsimulation.test=all -jar /Users/tt/Documents/pol-master/src/main/java/edu/gmu/mason/vanilla/target/vanilla-0.1-jar-with-dependencies.jar -configuration french_quarter.properties -until 8640

@@ -1122,20 +1122,22 @@ public class WorldModel extends SimState {
 
 		
 		// update day display on the screen
-		int spreadPeriod = 4;
+		int spreadPeriod = 20;
+		params.numOfIniMisAgent = 5;
+		int numOfIniMisAgent = 5;
 
 		if (day % spreadPeriod == 0) {
 			// select and set the initial misinformation status
 			ArrayList<Integer> generatedNumbers = new ArrayList<>();
 			Random random = new Random();
-			System.out.println(params.numOfIniMisAgent+" "+ params.numOfAgents);
-			while (generatedNumbers.size() < params.numOfIniMisAgent) {
+			System.out.println(numOfIniMisAgent+" "+ params.numOfAgents);
+			while (generatedNumbers.size() < numOfIniMisAgent) {
 				int randomNumber = random.nextInt(params.numOfAgents);
 				if (!generatedNumbers.contains(randomNumber)) {
 					generatedNumbers.add(randomNumber);
 				}
 			}
-			logger.info("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation");
+			logger.info("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation "+numOfIniMisAgent);
 
 			StringBuilder generatedNumbersString = new StringBuilder();
 
@@ -1144,6 +1146,7 @@ public class WorldModel extends SimState {
 			}
 			try {
 				logMisinformation.recordSpread("New Spread! Agents initially processes misinformation: "+ generatedNumbersString.toString());
+				logMisinformation.recordSpread("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation "+params.numOfIniMisAgent);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1335,9 +1338,10 @@ public class WorldModel extends SimState {
 						if (edge != null
 								&& observedNetworkAgents.contains(edge.getFrom())
 								&& observedNetworkAgents.contains(edge.getTo())) {
-							if (observedFriendFamilyNetwork.getEdge(edge.getFrom(), edge.getTo()) != null) {
-								observedFriendFamilyNetwork.addEdge(edge.getFrom(), edge.getTo(), 1.0);
-							}
+							observedFriendFamilyNetwork.addEdge(edge.getFrom(), edge.getTo(), 1.0);
+							// if (observedFriendFamilyNetwork.getEdge(edge.getFrom(), edge.getTo()) != null) {
+							// 	observedFriendFamilyNetwork.addEdge(edge.getFrom(), edge.getTo(), 1.0);
+							// }
 						}
 					}
 				}
@@ -1501,7 +1505,7 @@ public class WorldModel extends SimState {
 						double currentWeight = (double) info;
 
 						try {
-							logMisinformation.recordObservedSocialNetwork(agent1 + " " + agent2 + " " + currentWeight);
+							logMisinformation.recordObservedSocialNetwork(agent1 + " " + agent2 + " ");
 						} catch (IOException e) {
 							e.printStackTrace();
 						}

@@ -1137,7 +1137,7 @@ public class WorldModel extends SimState {
 					generatedNumbers.add(randomNumber);
 				}
 			}
-			logger.info("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation "+numOfIniMisAgent);
+			//logger.info("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation "+numOfIniMisAgent);
 
 			StringBuilder generatedNumbersString = new StringBuilder();
 
@@ -1146,7 +1146,7 @@ public class WorldModel extends SimState {
 			}
 			try {
 				logMisinformation.recordSpread("New Spread! Agents initially processes misinformation: "+ generatedNumbersString.toString());
-				logMisinformation.recordSpread("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation "+params.numOfIniMisAgent);
+				// logMisinformation.recordSpread("Among "+ params.numOfAgents + " agents, "+ generatedNumbers.size()+ " initially processes misinformation "+params.numOfIniMisAgent);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -1185,13 +1185,13 @@ public class WorldModel extends SimState {
 				int family_size;
 				String interest;
 				int home;
-				writer.write("agent_id agent_interest location_of_home age available_balance monthly_income education_level family_size\n");
+				writer.write("agent_id agent_interest location_of_home available_balance monthly_income education_level family_size\n");
 				for (long agent_id = 0; agent_id < params.numOfAgents; agent_id++) {
 					if (getAgent(agent_id) != null) {
 						Person agent = getAgent(agent_id);
 						joviality = agent.getJoviality();
 						el = agent.getEducationLevel().getValue();
-						age = agent.getAge();
+						// age = agent.getAge();
 						monthly_income = agent.getProjectedMonthlyIncome();
 						interest = agent.getInterest().name();
 						family_size = agent.getFamilyNumber();
